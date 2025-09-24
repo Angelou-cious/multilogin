@@ -4,12 +4,12 @@ import os
 import json
 import time
 from selenium import webdriver
+from decouple import config
 
-base_url = "https://api.multilogin.com"
-email = "almerando2@gmail.com"
-password = "Thanos_12345@"
-token_file = "token.json"
-
+token_file = 'token.json'
+email = config("EMAIL")
+password = config("PASSWORD")
+base_url = 'https://api.multilogin.com'
 
 def main():
     auth = UserAuth(base_url, email, password, token_file)
