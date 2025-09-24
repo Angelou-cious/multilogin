@@ -48,23 +48,15 @@ def main():
     print(f"profile id: {profile_id}")
     print(len(profile_list))
     
-    # print(profile_list)
-
-    # del_profile = pm.delete_profiles([profile_id], is_permanent=True)
-
-    # print(del_profile)
-
-    # res = pm.start_profile(profile_id, folder_id)
-
-    # print(res)
-
-    # port = res.get('status')['message']
 
 
-    # selenium_url = f'http://127.0.0.1:{port}'
 
-    # driver = webdriver.Remote(command_executor=selenium_url, options=options)
+    port = pm.start_profile(profile_id, folder_id)
 
-    # driver.get('https://www.wine-searcher.com')
-
+    try:
+        selenium_url = f'http://127.0.0.1:{port}'
+        driver = webdriver.Remote(command_executor=selenium_url, options=options)
+        driver.get('https://www.wine-searcher.com')
+    except Exception as e:
+        print(f"Error: {e}")
 main()
