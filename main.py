@@ -1,0 +1,70 @@
+from user_auth import UserAuth
+from profile_management import ProfileManagement
+import os
+import json
+import time
+from selenium import webdriver
+
+base_url = "https://api.multilogin.com"
+email = "almerando2@gmail.com"
+password = "Thanos_12345@"
+token_file = "token.json"
+
+
+def main():
+    auth = UserAuth(base_url, email, password, token_file)
+    pm = ProfileManagement(auth)
+    options = webdriver.ChromeOptions()
+
+
+    if os.path.exists(token_file):
+        with open(token_file, "r") as f:
+            tokens = json.load(f)
+        if tokens["token_expiration"] > time.time():
+            # reuse saved tokens
+            auth.access_token = tokens["access_token"]
+            auth.refresh_token = tokens["refresh_token"]
+            auth.token_expiration = tokens["token_expiration"]
+        else:
+            # expired → refresh or re-login
+            tokens = auth.login()
+            with open(token_file, "w") as f:
+                json.dump(tokens, f)
+    else:
+        # first run → login
+        tokens = auth.login()
+        with open(token_file, "w") as f:
+            json.dump(tokens, f)
+
+    
+    folders = pm.get_folders()
+    folder_id = folders[0].get("folder_id")
+    profile_list = pm.get_profiles(folder_id)
+    if len(profile_list) == 0:
+        pm.create_basic_profile('test', folder_id)
+    profile_id = profile_list[0].get("profile_id")  
+      
+    print(f"folder id: {folder_id}")
+    print(f"profile id: {profile_id}")
+    print(len(profile_list))
+    
+    # print(profile_list)
+
+    # del_profile = pm.delete_profiles([profile_id], is_permanent=True)
+
+    # print(del_profile)
+
+    # res = pm.start_profile(profile_id, folder_id)
+
+    # print(res)
+
+    # port = res.get('status')['message']
+
+
+    # selenium_url = f'http://127.0.0.1:{port}'
+
+    # driver = webdriver.Remote(command_executor=selenium_url, options=options)
+
+    # driver.get('https://www.wine-searcher.com')
+
+main()
