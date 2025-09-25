@@ -1,6 +1,7 @@
 from user_auth import UserAuth
 from profile_management import ProfileManagement
 from rate_limiter import RateLimiter
+from token_manager import TokenManager
 import os
 import json
 import time
@@ -15,29 +16,11 @@ host = 'http://127.0.0.1'
 
 def main():
     auth = UserAuth(base_url, email, password, token_file)
+    tm = TokenManager(auth, token_file)
+    tokens = tm.get_tokens()
     pm = ProfileManagement(auth)
     options = webdriver.ChromeOptions()
     limiter = RateLimiter(max_requests=2, period=10)
-
-
-    if os.path.exists(token_file):
-        with open(token_file, "r") as f:
-            tokens = json.load(f)
-        if tokens["token_expiration"] > time.time():
-            # reuse saved tokens
-            auth.access_token = tokens["access_token"]
-            auth.refresh_token = tokens["refresh_token"]
-            auth.token_expiration = tokens["token_expiration"]
-        else:
-            # expired → refresh or re-login
-            tokens = auth.login()
-            with open(token_file, "w") as f:
-                json.dump(tokens, f)
-    else:
-        # first run → login
-        tokens = auth.login()
-        with open(token_file, "w") as f:
-            json.dump(tokens, f)
 
     with limiter.limit():
         folders = pm.get_folders()

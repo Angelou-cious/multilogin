@@ -1,8 +1,4 @@
-import hashlib
-import requests
-import time
-import json
-
+import hashlib, requests, time, json
 
 class UserAuth:
     def __init__(self, base_url: str, email: str, password: str, token_file: str = "token.json"):
