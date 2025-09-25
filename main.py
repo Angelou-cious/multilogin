@@ -1,5 +1,6 @@
 from user_auth import UserAuth
 from profile_management import ProfileManagement
+from rate_limiter import RateLimiter
 import os
 import json
 import time
@@ -15,6 +16,7 @@ def main():
     auth = UserAuth(base_url, email, password, token_file)
     pm = ProfileManagement(auth)
     options = webdriver.ChromeOptions()
+    limiter = RateLimiter(max_requests=5, period=10)
 
 
     if os.path.exists(token_file):
@@ -36,27 +38,31 @@ def main():
         with open(token_file, "w") as f:
             json.dump(tokens, f)
 
-    
-    folders = pm.get_folders()
+    with limiter.limit():
+        folders = pm.get_folders()
     folder_id = folders[0].get("folder_id")
-    profile_list = pm.get_profiles(folder_id)
+
+    with limiter.limit():
+        profile_list = pm.get_profiles(folder_id)
+
     if len(profile_list) == 0:
-        pm.create_basic_profile('test', folder_id)
+        with limiter.limit():
+            pm.create_basic_profile('test', folder_id)
     profile_id = profile_list[0].get("profile_id")  
       
     print(f"folder id: {folder_id}")
     print(f"profile id: {profile_id}")
     print(len(profile_list))
     
-
-
-
-    port = pm.start_profile(profile_id, folder_id)
+    with limiter.limit():
+        port = pm.start_profile(profile_id, folder_id)
 
     try:
         selenium_url = f'http://127.0.0.1:{port}'
         driver = webdriver.Remote(command_executor=selenium_url, options=options)
         driver.get('https://www.wine-searcher.com')
+        driver.quit()
     except Exception as e:
         print(f"Error: {e}")
+        
 main()
