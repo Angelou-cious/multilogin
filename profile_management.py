@@ -98,17 +98,6 @@ class ProfileManagement:
         }
 
         return self.create_profile(profile_data)
-    
-    def create_advance_profile(self):
-
-        # profile_data = {
-        #     "name": name,
-        #     "browser_type": browser_type,
-        #     "folder_id": folder_id,
-        # }
-
-        # return self.create_profile(profile_data, strict_mode="true")
-        pass
 
     def get_profile_summary(self, profile_id: str) -> str:
 
@@ -196,7 +185,28 @@ class ProfileManagement:
         except requests.exceptions.RequestException as e:
             print(f"Error starting profile: {e}")
 
-    def delete_profiles(self, profile_ids: List[str], is_permanent: bool = True) -> str:
+    def stop_profile(self, profile_id: str, host: str = "https://127.0.0.1", port: int = 45001):
+
+        url = f"{host}:{port}/api/v1/profile/stop/p/{profile_id}"
+
+        headers = {
+            'Accept': 'application/json',
+            'Authorization': f'Bearer {self.user_auth.access_token}',
+        }
+
+        try:
+            response = requests.get(url=url, headers=headers, verify=False)
+
+            response.raise_for_status()
+
+            return f'Profile {profile_id} stopped successfully'
+
+        except RequestException as e:
+            print(f'Error stopping profile: {e}')
+
+
+
+    def delete_profiles(self, profile_ids: str, is_permanent: bool = True) -> str:
 
         url = f"{self.user_auth.base_url}/profile/remove"
 
@@ -208,7 +218,9 @@ class ProfileManagement:
         }
 
         json = {
-            "ids": profile_ids,
+            "ids": [
+                profile_ids
+            ],
             "permanently": is_permanent
         }
 

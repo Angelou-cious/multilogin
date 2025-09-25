@@ -11,12 +11,13 @@ token_file = 'token.json'
 email = config("EMAIL")
 password = config("PASSWORD")
 base_url = 'https://api.multilogin.com'
+host = 'http://127.0.0.1'
 
 def main():
     auth = UserAuth(base_url, email, password, token_file)
     pm = ProfileManagement(auth)
     options = webdriver.ChromeOptions()
-    limiter = RateLimiter(max_requests=5, period=10)
+    limiter = RateLimiter(max_requests=2, period=10)
 
 
     if os.path.exists(token_file):
@@ -45,24 +46,42 @@ def main():
     with limiter.limit():
         profile_list = pm.get_profiles(folder_id)
 
-    if len(profile_list) == 0:
-        with limiter.limit():
-            pm.create_basic_profile('test', folder_id)
-    profile_id = profile_list[0].get("profile_id")  
+    if len(profile_list) < 4:
+        for i in range(4 - len(profile_list)):
+            with limiter.limit():
+                pm.create_basic_profile('test', folder_id)
+    profile_ids = [profile.get("profile_id") for profile in profile_list]  
       
     print(f"folder id: {folder_id}")
-    print(f"profile id: {profile_id}")
+    print(f"profile id: {profile_ids}")
     print(len(profile_list))
-    
-    with limiter.limit():
-        port = pm.start_profile(profile_id, folder_id)
 
-    try:
-        selenium_url = f'http://127.0.0.1:{port}'
-        driver = webdriver.Remote(command_executor=selenium_url, options=options)
-        driver.get('https://www.wine-searcher.com')
-        driver.quit()
-    except Exception as e:
-        print(f"Error: {e}")
-        
+    data_list = []
+    for profile_id in profile_ids:
+        with limiter.limit():
+            port = pm.start_profile(profile_id, folder_id)
+            print(port)
+            selenium_url = f'{host}:{port}'
+            driver = webdriver.Remote(command_executor=selenium_url, options=options)
+
+            data = {
+                "profile_id": profile_id,
+                "port": port,
+                "driver": driver
+            }
+
+            data_list.append(data)
+    print(data_list)
+
+    for data in data_list:
+        with limiter.limit():
+            driver = data.get("driver", None)
+            try:
+                driver.get("https://www.wine-searcher.com")
+            except Exception as e:            
+                print(f"Error opening url: {e}")
+
+    for profile_id in profile_ids:
+        with limiter.limit():
+            pm.stop_profile(profile_id)
 main()
